@@ -7,7 +7,7 @@
 
 using namespace std;
 
-void queens(int index, int board[], int N, int depth, int &ans_cnt);
+void queens(int depth, int board[], int N, int &ans_cnt);
 bool promising(int new_Q, int board[]);
 
 int main() {
@@ -20,7 +20,7 @@ int main() {
 
   for (int i = 0; i < N; i++) {
     board[0] = i;
-    queens(0, board, N, 0, ans_cnt);
+    queens(0, board, N, ans_cnt);
   }
 
   if (ans_cnt == 0) {
@@ -32,11 +32,9 @@ int main() {
   return 0;
 }
 
-void queens(int index, int board[], int N, int depth, int &ans_cnt) {
-  int new_Q;
-
-  if (promising(index, board)) {
-    if (index == N - 1) {
+void queens(int depth, int board[], int N, int &ans_cnt) {
+  if (promising(depth, board)) {
+    if (depth == N - 1) {
       for (int i = 0; i < N; i++) {
         cout << board[i] << "  ";
       }
@@ -44,21 +42,21 @@ void queens(int index, int board[], int N, int depth, int &ans_cnt) {
       ans_cnt += 1;
     }
     else {
-      for (new_Q = 0; new_Q < N; new_Q++) {
-        board[index + 1] = new_Q;
-        queens(index + 1, board, N, depth + 1, ans_cnt);
+      for (int new_Q = 0; new_Q < N; new_Q++) {
+        board[depth + 1] = new_Q;
+        queens(depth + 1, board, N, ans_cnt);
       }
     }
   } // end if promising
 } 
 
-bool promising(int new_Q, int board[]) {
+bool promising(int depth, int board[]) {
   int k = 0;
   bool flag = true;
 
-  while (k < new_Q && flag) {
-    if (board[k] == board[new_Q] 
-            || abs(board[k] - board[new_Q]) == new_Q - k) {
+  while (k < depth && flag) {
+    if (board[k] == board[depth] 
+            || abs(board[k] - board[depth]) == depth - k) {
       flag = false;
       break;
     }
