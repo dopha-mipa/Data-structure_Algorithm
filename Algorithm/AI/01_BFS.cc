@@ -1,5 +1,5 @@
 /* 2017. 06. 19.
-  N-Queen problem with BFS 
+  N-Queen problem with BFS  (with pruning)
   C++ STL
   C++에서 Tree에는 map을 사용한다는걸 처음 배우다
 */

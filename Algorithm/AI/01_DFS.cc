@@ -1,5 +1,5 @@
 /* 2017. 06. 19.
-  N-Queen problem with DFS 
+  N-Queen problem with DFS (with pruning)
   C++ STL
 */
 #include <iostream>
@@ -18,10 +18,7 @@ int main() {
   int board[N];
   int ans_cnt = 0;
 
-  for (int i = 0; i < N; i++) {
-    board[0] = i;
-    queens(0, board, N, ans_cnt);
-  }
+  queens(-1, board, N, ans_cnt);
 
   if (ans_cnt == 0) {
     cout << N << " : 정답이 없습니다." << endl;
@@ -53,6 +50,10 @@ void queens(int depth, int board[], int N, int &ans_cnt) {
 bool promising(int depth, int board[]) {
   int k = 0;
   bool flag = true;
+
+  if (depth == -1) {
+    return flag;
+  }
 
   while (k < depth && flag) {
     if (board[k] == board[depth] 
