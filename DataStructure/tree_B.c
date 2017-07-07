@@ -69,6 +69,7 @@ bool tree_insert(struct b_tree *tree, struct datum d) {
     struct b_node *new_node = realloc_node(NULL, 1);
     new_node->num_data = 1;
     new_node->data[0] = d;
+    tree->root = new_node;
   }
   else {
     // TODO : 중복키 삽입조건 지키기
@@ -243,65 +244,16 @@ int *rand_key_generate(int size) {
 
 void unit_test() {
   // test data tree_insert into b_node
-  struct b_node *test = realloc_node(NULL, 5);
-  test->num_data = 5;
-  test->data[0] = (struct datum) {5};
-  test->data[1] = (struct datum) {10};
-  test->data[2] = (struct datum) {17};
-  test->data[3] = (struct datum) {24};
-  test->data[4] = (struct datum) {30};
+  bool result = false;
+  struct b_tree *test = tree_init();
+  // root
+  result = tree_insert(test, (struct datum) {5});
+  result = tree_insert(test, (struct datum) {10});
+  result = tree_insert(test, (struct datum) {17});
+  result = tree_insert(test, (struct datum) {24});
+  result = tree_insert(test, (struct datum) {30});
 
-  struct b_node *child0 = realloc_node(NULL, 3);
-  child0->num_data = 3;
-  child0->data[0] = (struct datum) {1};
-  child0->data[1] = (struct datum) {3};
-  child0->data[2] = (struct datum) {4};
-
-  struct b_node *child1 = realloc_node(NULL, 3);
-  child1->num_data = 3;
-  child1->data[0] = (struct datum) {6};
-  child1->data[1] = (struct datum) {7};
-  child1->data[2] = (struct datum) {9};
-
-  struct b_node *child2 = realloc_node(NULL, 3);
-  child2->num_data = 3;
-  child2->data[0] = (struct datum) {12};
-  child2->data[1] = (struct datum) {14};
-  child2->data[2] = (struct datum) {16};
-
-  struct b_node *child3 = realloc_node(NULL, 3);
-  child3->num_data = 3;
-  child3->data[0] = (struct datum) {18};
-  child3->data[1] = (struct datum) {19};
-  child3->data[2] = (struct datum) {23};
-
-  struct b_node *child4 = realloc_node(NULL, 3);
-  child4->num_data = 3;
-  child4->data[0] = (struct datum) {25};
-  child4->data[1] = (struct datum) {27};
-  child4->data[2] = (struct datum) {28};
-
-  struct b_node *child5 = realloc_node(NULL, 3);
-  child5->num_data = 3;
-  child5->data[0] = (struct datum) {31};
-  child5->data[1] = (struct datum) {32};
-  child5->data[2] = (struct datum) {34};
-
-  // node_insert_datum(test, (struct datum) {5}, NULL, NULL);
-
-  printf("%d,  %d,  %d\n", -7 / 2, -5 / 2, -3 / 2);
-  printf("%d,  %d,  %d\n", -1 / 2, 1 / 2, 3 / 2);
-  printf("%d,  %d,  %d\n", 5 / 2, 7 / 2, 9 / 2);
-  printf("%d,  %d,  %d\n", 11 / 2, 13 / 2, 15 / 2);
-
-  test->children[0] = child0;
-  test->children[1] = child1;
-  test->children[2] = child2;
-  test->children[3] = child3;
-  test->children[4] = child4;
-  test->children[5] = child5;
-
-  split(test, NULL);
-
-
+  // node split --- TODO !!! 왜 5가 17로 바뀌냐 ㄷㄷ
+  result = tree_insert(test, (struct datum) {1});
+  printf("insert {1} : %d\n", result);
 }

@@ -34,6 +34,7 @@ struct b_node *realloc_node(struct b_node *cur, int dim);
 bool tree_insert(struct b_tree *tree, struct datum d);
 bool check_leaf(struct b_node *node);
 bool check_full(struct b_node *node);
+bool check_same_key(struct b_node *node, int key);
 
 bool split(struct b_node *cur, struct b_node *parent);
 struct b_node *copy_node_half(struct b_node *cur, int from, int to);
