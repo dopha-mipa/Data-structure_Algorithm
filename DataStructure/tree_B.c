@@ -7,6 +7,7 @@
  *    1. 노드에서의 삭제 연산 ;
  *    4. bool 연산값들의 처리! 이왕 있는 김에
  *    5. 중복키 확인해보기
+ *    6. MAX_KEY를 막쓰기 시작했다..
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,11 +21,7 @@ void unit_test();
 
 int main() {
   int keys = 100;
-  int* rand_keys = rand_key_generate(keys);
-
-  struct b_tree *tree = tree_init();
-  struct datum d = {10};
-  bool success = tree_insert(tree, d);
+  // int* rand_keys = rand_key_generate(keys);
 
   unit_test();
 
@@ -44,20 +41,14 @@ struct b_tree *tree_init() {
 /* if cur == NULL, create new b_node
  * else realloc size of b_node->data and b_node->children 
  * WARN : node->num_key must be updated after execution T_T */
-struct b_node *realloc_node(struct b_node *cur, int dim) {
+struct b_node *create_node() {
   struct b_node *node;
-  if (cur == NULL) {  // create
-    node = (struct b_node *) malloc(sizeof(struct b_node));
-    node->num_key = 0;
-  }
-  else {  // update
-    node = cur;
-  }
 
-  node->data = (struct datum *) realloc(
-              node->data, sizeof(struct datum) * dim);
-  node->children = (struct b_node **) realloc(
-              node->children, sizeof(struct b_node *) * (dim + 1));
+  node = (struct b_node *) malloc(sizeof(struct b_node));
+  node->num_key = 0;
+  node->data = (struct datum *) malloc(sizeof(struct datum) * MAX_KEY);
+  node->children = (struct b_node **) malloc(
+                        sizeof(struct b_node *) * (MAX_KEY + 1));
 
   return node;
 }
@@ -67,7 +58,7 @@ struct b_node *realloc_node(struct b_node *cur, int dim) {
  * When the leaf is full, split it and add the datum to the proper node */
 bool tree_insert(struct b_tree *tree, struct datum d) {
   if (tree->root == NULL || tree->num_data == 0) {  // if tree is empty
-    struct b_node *new_node = realloc_node(NULL, 1);
+    struct b_node *new_node = create_node();
     new_node->num_key = 1;
     new_node->data[0] = d;
     tree->root = new_node;
@@ -149,14 +140,14 @@ bool split(struct b_node *cur, struct b_node *parent) {
 
     cur->data[0] = cur->data[middle];
     replace_empty(cur, middle);
-    cur = realloc_node(cur, 1);
+    // cur = create_node(cur, 1);
     cur->num_key = 1;
     cur->children[0] = left;
     cur->children[1] = right;
   }
   else {  // cur != root -- cur => left
     struct datum go_up = cur->data[middle];
-    cur = realloc_node(cur, middle);
+    // cur = create_node(cur, middle);
     cur->num_key = middle;
     replace_empty(cur, middle);
     // TODO : 꽉 찬 부모는 여기서는 내버려두나요?
@@ -168,7 +159,7 @@ bool split(struct b_node *cur, struct b_node *parent) {
 
 /* WARN : Must guarantee MAX_KEY / 2 == to - from*/
 struct b_node *copy_node_half(struct b_node *cur, int from, int to) {
-  struct b_node *new = realloc_node(NULL, to - from);
+  struct b_node *new = create_node();
   new->children[0] = cur->children[from];
   cur->children[from] = NULL;
 
@@ -209,7 +200,7 @@ bool node_insert_datum(struct b_node *node, struct datum d,
 
   node->num_key += 1;
   int dim = node->num_key;
-  node = realloc_node(node, dim);  // TODO : 불필요하다는 기분이 든다.. 조건이라도
+  // node = create_node(node, dim);  // TODO : 불필요하다는 기분이 든다.. 조건이라도
   node->data[dim - 1] = d;  // append d to data[]
 
   int index = dim - 2;  // TODO : 중복에 주의. dim과 index
@@ -301,7 +292,7 @@ void unit_test() {
   result = tree_insert(test, (struct datum) {19});
   result = tree_insert(test, (struct datum) {23});
   
-  // ERROR
+  result = tree_insert(test, (struct datum) {15});
   result = tree_insert(test, (struct datum) {25});
   result = tree_insert(test, (struct datum) {27});
   result = tree_insert(test, (struct datum) {28});

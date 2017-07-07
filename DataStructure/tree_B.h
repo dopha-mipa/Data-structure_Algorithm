@@ -2,7 +2,7 @@
  * B-tree header
  * Nayoun Seo (puremint09@gmail.com)
  * 
- * TODO : node.h와 tree.h로 나눠야 할까?
+ * TODO : 메소드 명명법 통일하기
  */
 #define MIN_KEY 3  // 5차 B-tree
 #define MAX_KEY 2 * MIN_KEY - 1
@@ -29,7 +29,7 @@ struct b_tree {
 };
 
 struct b_tree *tree_init();
-struct b_node *realloc_node(struct b_node *cur, int dim);
+struct b_node *create_node();
 
 bool tree_insert(struct b_tree *tree, struct datum d);
 bool check_leaf(struct b_node *node);
