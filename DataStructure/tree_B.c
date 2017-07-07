@@ -46,11 +46,11 @@ struct b_tree *tree_init() {
  * WARN : node->num_key must be updated after execution T_T */
 struct b_node *realloc_node(struct b_node *cur, int dim) {
   struct b_node *node;
-  if (cur == NULL) {
+  if (cur == NULL) {  // create
     node = (struct b_node *) malloc(sizeof(struct b_node));
     node->num_key = 0;
   }
-  else {
+  else {  // update
     node = cur;
   }
 
@@ -88,7 +88,7 @@ bool tree_insert(struct b_tree *tree, struct datum d) {
       if (check_same_key(cur, d.key)) {
         return false;
       }
-    }
+    } // end of going down
 
     if (check_full(cur)) { // for leaf node
       split(cur, parent);
@@ -143,6 +143,7 @@ bool split(struct b_node *cur, struct b_node *parent) {
     struct b_node *left = copy_node_half(cur, 0, middle);
 
     cur->data[0] = cur->data[middle];
+    cur->data[middle] = (struct datum) {0};
     cur = realloc_node(cur, 1);
     cur->num_key = 1;
     cur->children[0] = left;
@@ -169,10 +170,9 @@ struct b_node *copy_node_half(struct b_node *cur, int from, int to) {
   int i;
   for (i = from; i < to; i++) {
     node_insert_datum(new, cur->data[i], NULL, cur->children[i + 1]);
-    // free(cur->data[i]); : 하지 않는편이 좋다고 한다. memory leak
+    cur->data[i] = (struct datum) {0};  // free 등은 memory leak의 위험
     cur->children[i + 1] = NULL;
   }
-  // TODO : 왠지 중복될거 같은데..
   cur->num_key -= (to - from);
   return new;
 }
@@ -207,7 +207,7 @@ bool node_insert_datum(struct b_node *node, struct datum d,
   node = realloc_node(node, dim);  // TODO : 불필요하다는 기분이 든다.. 조건이라도
   node->data[dim - 1] = d;  // append d to data[]
 
-  int index = dim - 2;  // TODO : 중복에 주의
+  int index = dim - 2;  // TODO : 중복에 주의. dim과 index
   while (index > -1 && node->data[index].key > d.key) {
     node->data[index + 1] = node->data[index];
     node->children[index + 2] = node->children[index + 1];
@@ -239,6 +239,7 @@ int *rand_key_generate(int size) {
 
   bool *check_repett = (bool *) malloc(sizeof(bool) * (largest + 1));
   check_repett = memset(check_repett, 0, sizeof(bool) * (largest + 1));
+  check_repett[0] = true;  // 0을 뽑는 것을 방지
   // TODO : 이렇게 말고.. 좀 더 10000에 가까운 범위에서 배열을 돌며 
   // 뽑을 수 있는 알고리즘으로 써야겠다
 
@@ -273,7 +274,6 @@ void unit_test() {
   result = tree_insert(test, (struct datum) {24});
   result = tree_insert(test, (struct datum) {30});
 
-  // node split --- TODO !!! 왜 5가 17로 바뀌냐 ㄷㄷ
   result = tree_insert(test, (struct datum) {1});
-  printf("insert {1} : %d\n", result);
+  
 }
