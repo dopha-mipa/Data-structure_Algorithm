@@ -46,3 +46,6 @@ bool print_tree(struct b_tree *tree);
 
 bool node_insert_datum(struct b_node *node, struct datum d, 
                        struct b_node *left, struct b_node *right);
+bool node_delete_datum(struct b_node *node, int key);
+
+bool replace_empty(struct b_node *cur, int index);

@@ -92,7 +92,12 @@ bool tree_insert(struct b_tree *tree, struct datum d) {
 
     if (check_full(cur)) { // for leaf node
       split(cur, parent);
-      cur = next_node(cur, d.key);
+      if (tree->root == cur) {
+        cur = next_node(cur, d.key);
+      }
+      else {
+        cur = next_node(parent, d.key);
+      }
     }
     node_insert_datum(cur, d, NULL, NULL);
   }
@@ -143,17 +148,17 @@ bool split(struct b_node *cur, struct b_node *parent) {
     struct b_node *left = copy_node_half(cur, 0, middle);
 
     cur->data[0] = cur->data[middle];
-    cur->data[middle] = (struct datum) {0};
+    replace_empty(cur, middle);
     cur = realloc_node(cur, 1);
     cur->num_key = 1;
     cur->children[0] = left;
     cur->children[1] = right;
   }
   else {  // cur != root -- cur => left
-    struct b_node *recur = parent;
     struct datum go_up = cur->data[middle];
     cur = realloc_node(cur, middle);
     cur->num_key = middle;
+    replace_empty(cur, middle);
     // TODO : 꽉 찬 부모는 여기서는 내버려두나요?
     node_insert_datum(parent, go_up, NULL, right);
   }
@@ -170,7 +175,7 @@ struct b_node *copy_node_half(struct b_node *cur, int from, int to) {
   int i;
   for (i = from; i < to; i++) {
     node_insert_datum(new, cur->data[i], NULL, cur->children[i + 1]);
-    cur->data[i] = (struct datum) {0};  // free 등은 memory leak의 위험
+    replace_empty(cur, i);  // free 등은 memory leak의 위험
     cur->children[i + 1] = NULL;
   }
   cur->num_key -= (to - from);
@@ -232,6 +237,12 @@ bool node_delete_datum(struct b_node *node, int key) {
 
 }
 
+/* Instead of free(), replace old datum to {0} (due to memory leak) */
+bool replace_empty(struct b_node *cur, int index) {
+  cur->data[index] = (struct datum) {0};
+  return true;
+}
+
 /* return array of random keys[size] */
 int *rand_key_generate(int size) {
   srand(time(NULL));
@@ -267,7 +278,7 @@ void unit_test() {
   // test data tree_insert into b_node
   bool result = false;
   struct b_tree *test = tree_init();
-  // root
+
   result = tree_insert(test, (struct datum) {5});
   result = tree_insert(test, (struct datum) {10});
   result = tree_insert(test, (struct datum) {17});
@@ -275,5 +286,28 @@ void unit_test() {
   result = tree_insert(test, (struct datum) {30});
 
   result = tree_insert(test, (struct datum) {1});
+  result = tree_insert(test, (struct datum) {3});
+  result = tree_insert(test, (struct datum) {4});
+
+  result = tree_insert(test, (struct datum) {6});
+  result = tree_insert(test, (struct datum) {7});
+  result = tree_insert(test, (struct datum) {9});
+
+  result = tree_insert(test, (struct datum) {12});
+  result = tree_insert(test, (struct datum) {14});
+  result = tree_insert(test, (struct datum) {16});
+
+  result = tree_insert(test, (struct datum) {18});
+  result = tree_insert(test, (struct datum) {19});
+  result = tree_insert(test, (struct datum) {23});
   
+  // ERROR
+  result = tree_insert(test, (struct datum) {25});
+  result = tree_insert(test, (struct datum) {27});
+  result = tree_insert(test, (struct datum) {28});
+
+  result = tree_insert(test, (struct datum) {31});
+  result = tree_insert(test, (struct datum) {32});
+  result = tree_insert(test, (struct datum) {34});
+
 }
