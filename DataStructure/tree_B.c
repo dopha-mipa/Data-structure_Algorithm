@@ -19,8 +19,8 @@ int *rand_key_generate(int size);
 void unit_test();
 
 int main() {
-  int num_keys = 100;
-  int* rand_keys = rand_key_generate(num_keys);
+  int keys = 100;
+  int* rand_keys = rand_key_generate(keys);
 
   struct b_tree *tree = tree_init();
   struct datum d = {10};
@@ -42,16 +42,16 @@ struct b_tree *tree_init() {
 }
 
 /* if cur == NULL, create new b_node
- * else realloc size of b_node->data and b_node->children */
+ * else realloc size of b_node->data and b_node->children 
+ * WARN : node->num_key must be updated after execution T_T */
 struct b_node *realloc_node(struct b_node *cur, int dim) {
   struct b_node *node;
   if (cur == NULL) {
     node = (struct b_node *) malloc(sizeof(struct b_node));
-    node->num_data = 0;
+    node->num_key = 0;
   }
   else {
     node = cur;
-    node->num_data = dim;
   }
 
   node->data = (struct datum *) realloc(
@@ -64,11 +64,11 @@ struct b_node *realloc_node(struct b_node *cur, int dim) {
 
 /* Insertion must be happen at the leaf.
  * When goes down to the leaf, if cur is full then split.
- * When the leaf is full, split and add the datum to the proper node */
+ * When the leaf is full, split it and add the datum to the proper node */
 bool tree_insert(struct b_tree *tree, struct datum d) {
   if (tree->root == NULL || tree->num_data == 0) {  // if tree is empty
     struct b_node *new_node = realloc_node(NULL, 1);
-    new_node->num_data = 1;
+    new_node->num_key = 1;
     new_node->data[0] = d;
     tree->root = new_node;
   }
@@ -79,7 +79,7 @@ bool tree_insert(struct b_tree *tree, struct datum d) {
       return false;
     }
 
-    while (!check_leaf(cur)) { // 꽉 찬 부모 노드는 split
+    while (!check_leaf(cur)) { // Goes down to the leaf (while != leaf)
       if (check_full(cur)) {
         split(cur, parent);
       }
@@ -90,7 +90,7 @@ bool tree_insert(struct b_tree *tree, struct datum d) {
       }
     }
 
-    if (check_full(cur)) { // leaf node에 대해
+    if (check_full(cur)) { // for leaf node
       split(cur, parent);
       cur = next_node(cur, d.key);
     }
@@ -113,7 +113,7 @@ bool check_leaf(struct b_node *node) {
 /* Check whether node is full or not */
 bool check_full(struct b_node *node) {
   bool checked = false;
-  if (node->num_data == MAX_KEY) {
+  if (node->num_key == MAX_KEY) {
     checked = true;
   }
   return checked;
@@ -122,7 +122,7 @@ bool check_full(struct b_node *node) {
 /* Check whether the key is already in or not*/
 bool check_same_key(struct b_node *node, int key) {
   int i;
-  for (i = 0; i < node->num_data; i++) {
+  for (i = 0; i < node->num_key; i++) {
     if (node->data[i].key == key) {
       return true;
     }
@@ -130,20 +130,21 @@ bool check_same_key(struct b_node *node, int key) {
   return false;
 }
 
-/* Splits cur when cur->num_data = MAX_data */
+/* Splits cur when cur->num_key = MAX_data */
 bool split(struct b_node *cur, struct b_node *parent) {
   if (cur == NULL) {
     return false;
   }
 
-  int middle = cur->num_data / 2;
-  struct b_node *right = copy_node_half(cur, middle + 1, cur->num_data);
+  int middle = cur->num_key / 2;
+  struct b_node *right = copy_node_half(cur, middle + 1, cur->num_key);
 
   if (parent == NULL) {  // if cur == root, create left
     struct b_node *left = copy_node_half(cur, 0, middle);
 
     cur->data[0] = cur->data[middle];
     cur = realloc_node(cur, 1);
+    cur->num_key = 1;
     cur->children[0] = left;
     cur->children[1] = right;
   }
@@ -151,6 +152,7 @@ bool split(struct b_node *cur, struct b_node *parent) {
     struct b_node *recur = parent;
     struct datum go_up = cur->data[middle];
     cur = realloc_node(cur, middle);
+    cur->num_key = middle;
     // TODO : 꽉 찬 부모는 여기서는 내버려두나요?
     node_insert_datum(parent, go_up, NULL, right);
   }
@@ -171,7 +173,7 @@ struct b_node *copy_node_half(struct b_node *cur, int from, int to) {
     cur->children[i + 1] = NULL;
   }
   // TODO : 왠지 중복될거 같은데..
-  cur->num_data -= (to - from);
+  cur->num_key -= (to - from);
   return new;
 }
 
@@ -182,7 +184,7 @@ struct b_node *next_node(struct b_node *node, int key) {
   }
 
   int index = 0;
-  while (index < node->num_data) {
+  while (index < node->num_key) {
     if (key < node->data[index].key) {
       break;
     }
@@ -193,19 +195,19 @@ struct b_node *next_node(struct b_node *node, int key) {
 }
 
 /* insertion sort  
- * Guarantees node->num_data < MAX_KEY (splitted before execution) */
+ * Guarantees node->num_key < MAX_KEY (splitted before execution) */
 bool node_insert_datum(struct b_node *node, struct datum d, 
                        struct b_node *left, struct b_node *right) {
   if (node == NULL) {
     return false;
   }
 
-  node->num_data += 1;
-  int dim = node->num_data;
+  node->num_key += 1;
+  int dim = node->num_key;
   node = realloc_node(node, dim);  // TODO : 불필요하다는 기분이 든다.. 조건이라도
   node->data[dim - 1] = d;  // append d to data[]
 
-  int index = dim - 2;
+  int index = dim - 2;  // TODO : 중복에 주의
   while (index > -1 && node->data[index].key > d.key) {
     node->data[index + 1] = node->data[index];
     node->children[index + 2] = node->children[index + 1];
@@ -226,7 +228,7 @@ bool node_delete_datum(struct b_node *node, int key) {
     return false;
   }
 
-  // TODO : num_data -= 1
+  // TODO : num_key -= 1
 
 }
 

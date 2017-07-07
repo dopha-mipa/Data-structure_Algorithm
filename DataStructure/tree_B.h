@@ -16,7 +16,7 @@ struct datum {
 
 struct b_node {
   struct datum *data;
-  int num_data;
+  int num_key;
   struct b_node **children;
 };
 
