@@ -6,6 +6,7 @@
  * TODO : 
  *    1. 노드에서의 삭제 연산 ;
  *    4. bool 연산값들의 처리! 이왕 있는 김에
+ *    5. 중복키 확인해보기
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -72,21 +73,27 @@ bool tree_insert(struct b_tree *tree, struct datum d) {
     tree->root = new_node;
   }
   else {
-    // TODO : 중복키 삽입조건 지키기
     struct b_node *parent = NULL;
     struct b_node *cur = tree->root;
+    if (check_same_key(cur, d.key)) {
+      return false;
+    }
+
     while (!check_leaf(cur)) { // 꽉 찬 부모 노드는 split
       if (check_full(cur)) {
         split(cur, parent);
       }
       parent = cur;
       cur = next_node(cur, d.key);
+      if (check_same_key(cur, d.key)) {
+        return false;
+      }
     }
 
     if (check_full(cur)) { // leaf node에 대해
       split(cur, parent);
+      cur = next_node(cur, d.key);
     }
-    // TODO : 어.. cur의 자식이 새로 생기지 않아뜰까..? ㄷㄷ
     node_insert_datum(cur, d, NULL, NULL);
   }
 
@@ -110,6 +117,17 @@ bool check_full(struct b_node *node) {
     checked = true;
   }
   return checked;
+}
+
+/* Check whether the key is already in or not*/
+bool check_same_key(struct b_node *node, int key) {
+  int i;
+  for (i = 0; i < node->num_data; i++) {
+    if (node->data[i].key == key) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /* Splits cur when cur->num_data = MAX_data */
@@ -153,7 +171,7 @@ struct b_node *copy_node_half(struct b_node *cur, int from, int to) {
     cur->children[i + 1] = NULL;
   }
   // TODO : 왠지 중복될거 같은데..
-  cur->num_data = cur->num_data - (to - from);
+  cur->num_data -= (to - from);
   return new;
 }
 
