@@ -5,7 +5,7 @@
  * TODO : 메소드 명명법 통일하기, 함수 순서 정리하기 (.c)
  * (위상 정렬 써볼까 데헿)
  */
-#define MIN_KEY 3  // 5차 B-tree
+#define MIN_KEY 3  // 5차 B-tree (홀수차)
 #define MAX_KEY 2 * MIN_KEY - 1
 
 typedef enum bool {false, true} bool;
@@ -23,12 +23,12 @@ struct b_node {
 struct b_tree {
   struct b_node *root;
   int num_data;
-  int max_order;  /* order of B-tree */
 };
 
 struct b_tree *tree_init();
 bool tree_insert(struct b_tree *tree, struct datum d);
 struct b_node *tree_next_node(struct b_node *node, int key);
+bool tree_borrow_key(struct b_node *parent, struct b_node *hungry);
 
 struct b_node *node_init();
 bool node_insert_datum(struct b_node *node, struct datum d, 
@@ -39,11 +39,12 @@ bool node_check_leaf(struct b_node *node);
 bool node_check_full(struct b_node *node);
 bool node_check_same_key(struct b_node *node, int key);
 
-/* -------------- 미구현 -------------- */
 struct datum tree_find_datum(struct b_tree *tree, int key);
 int node_find_key(struct b_node *node, int key);
-bool print_tree(struct b_tree *tree);
-
 bool node_delete_datum(struct b_node *node, int key);
 
+/* -------------- 미구현 -------------- */
+bool tree_remove(struct b_tree *tree, int key);
+
+bool print_tree(struct b_tree *tree);
 bool datum_empty(struct b_node *cur, int index);
