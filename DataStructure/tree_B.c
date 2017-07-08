@@ -62,8 +62,7 @@ bool tree_insert(struct b_tree *tree, struct datum d) {
     new_node->num_key = 1;
     new_node->data[0] = d;
     tree->root = new_node;
-  }
-  else {
+  } else {
     struct b_node *parent = NULL;
     struct b_node *cur = tree->root;
     if (node_check_same_key(cur, d.key)) {
@@ -85,8 +84,7 @@ bool tree_insert(struct b_tree *tree, struct datum d) {
       node_split(cur, parent);
       if (tree->root == cur) {
         cur = tree_next_node(cur, d.key);
-      }
-      else {
+      } else {
         cur = tree_next_node(parent, d.key);
       }
     }
@@ -144,8 +142,7 @@ bool node_split(struct b_node *cur, struct b_node *parent) {
     cur->num_key = 1;
     cur->children[0] = left;
     cur->children[1] = right;
-  }
-  else {  // cur != root -- cur => left
+  } else {  // cur != root -- cur => left
     struct datum go_up = cur->data[middle];
     cur->num_key = middle;
     datum_empty(cur, middle);
@@ -217,6 +214,57 @@ bool node_insert_datum(struct b_node *node, struct datum d,
   return true;
 }
 
+struct datum tree_find_datum(struct b_tree *tree, int key) {
+  struct b_node *cur = tree->root;
+  int index = node_find_key(cur, key);
+  while (index == -1 && cur != NULL) {
+    cur = tree_next_node(cur, key);
+    index = node_find_key(cur, key);
+  }
+
+  if (cur != NULL) {
+    return cur->data[index];
+  }
+
+  return (struct datum) {0};
+}
+
+int node_find_key(struct b_node *node, int key) {
+  if (node == NULL) {
+    return -1;
+  }
+  if (node->data[node->num_key - 1].key < key || node->data[0].key > key) {
+    return -1;
+  }
+  int index;
+
+  int from = 0;
+  int end = node->num_key;
+  while (from < end) {
+    int middle = from + (end - from) / 2;
+
+    if (node->data[middle].key == key) {
+      index = middle;
+      break;
+    } else if (node->data[middle].key < key) {
+      from = middle + 1;
+    } else {
+      end = middle - 1;
+    }
+  }
+
+  if (from >= end) {
+    if (node->data[from].key == key) {
+      index = from;
+    } else {
+      index = -1;
+    }
+  }
+
+  return index;
+}
+
+
 bool node_delete_datum(struct b_node *node, int key) {
   if (node == NULL) {
     return false;
@@ -274,6 +322,9 @@ void unit_test() {
   result = tree_insert(test, (struct datum) {24});
   result = tree_insert(test, (struct datum) {30});
 
+  struct datum d = tree_find_datum(test, 24);
+  printf("d.key : %d\n", d.key);
+
   result = tree_insert(test, (struct datum) {1});
   result = tree_insert(test, (struct datum) {3});
   result = tree_insert(test, (struct datum) {4});
@@ -290,6 +341,9 @@ void unit_test() {
   result = tree_insert(test, (struct datum) {19});
   result = tree_insert(test, (struct datum) {23});
   
+  d = tree_find_datum(test, 19);
+  printf("d.key : %d\n", d.key);
+
   result = tree_insert(test, (struct datum) {15});
   result = tree_insert(test, (struct datum) {25});
   result = tree_insert(test, (struct datum) {27});
@@ -298,5 +352,18 @@ void unit_test() {
   result = tree_insert(test, (struct datum) {31});
   result = tree_insert(test, (struct datum) {32});
   result = tree_insert(test, (struct datum) {34});
+
+  d = tree_find_datum(test, 27);
+  printf("d.key : %d\n", d.key);
+
+  d = tree_find_datum(test, 32);
+  printf("d.key : %d\n", d.key);
+
+  d = tree_find_datum(test, 6);
+  printf("d.key : %d\n", d.key);
+
+  d = tree_find_datum(test, 5200);
+  // printf("%d\n", d);
+  printf("d.key : %d\n", d.key);
 
 }

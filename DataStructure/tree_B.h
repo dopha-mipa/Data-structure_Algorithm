@@ -2,7 +2,8 @@
  * B-tree header
  * Nayoun Seo (puremint09@gmail.com)
  * 
- * TODO : 메소드 명명법 통일하기
+ * TODO : 메소드 명명법 통일하기, 함수 순서 정리하기 (.c)
+ * (위상 정렬 써볼까 데헿)
  */
 #define MIN_KEY 3  // 5차 B-tree
 #define MAX_KEY 2 * MIN_KEY - 1
@@ -39,7 +40,7 @@ bool node_check_full(struct b_node *node);
 bool node_check_same_key(struct b_node *node, int key);
 
 /* -------------- 미구현 -------------- */
-struct datum *tree_find_datum(struct b_tree *tree, int key);
+struct datum tree_find_datum(struct b_tree *tree, int key);
 int node_find_key(struct b_node *node, int key);
 bool print_tree(struct b_tree *tree);
 
