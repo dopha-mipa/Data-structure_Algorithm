@@ -11,7 +11,6 @@ typedef enum bool {false, true} bool;
 
 struct datum {
   int key;
-  // int value;
 };
 
 struct b_node {
@@ -23,29 +22,27 @@ struct b_node {
 struct b_tree {
   struct b_node *root;
   int num_data;
-  // int depth;  /* if tree is empty = -1, only root = 0. ++ when splitted */
-  // int min_data;
   int max_order;  /* order of B-tree */
 };
 
 struct b_tree *tree_init();
-struct b_node *create_node();
-
 bool tree_insert(struct b_tree *tree, struct datum d);
-bool check_leaf(struct b_node *node);
-bool check_full(struct b_node *node);
-bool check_same_key(struct b_node *node, int key);
+struct b_node *tree_next_node(struct b_node *node, int key);
 
-bool split(struct b_node *cur, struct b_node *parent);
-struct b_node *copy_node_half(struct b_node *cur, int from, int to);
-
-struct b_node *next_node(struct b_node *node, int key);
-
-struct datum *find(struct b_tree *tree, int key);
-bool print_tree(struct b_tree *tree);
-
+struct b_node *node_init();
 bool node_insert_datum(struct b_node *node, struct datum d, 
                        struct b_node *left, struct b_node *right);
+bool node_split(struct b_node *cur, struct b_node *parent);
+struct b_node *node_copy_half(struct b_node *cur, int from, int to);
+bool node_check_leaf(struct b_node *node);
+bool node_check_full(struct b_node *node);
+bool node_check_same_key(struct b_node *node, int key);
+
+/* -------------- 미구현 -------------- */
+struct datum *tree_find_datum(struct b_tree *tree, int key);
+int node_find_key(struct b_node *node, int key);
+bool print_tree(struct b_tree *tree);
+
 bool node_delete_datum(struct b_node *node, int key);
 
-bool replace_empty(struct b_node *cur, int index);
+bool datum_empty(struct b_node *cur, int index);
