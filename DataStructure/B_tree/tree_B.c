@@ -25,10 +25,10 @@ int main() {
     success = tree_insert(tree, (struct datum) {i});
   }
 
-  // 무작위 20개 삭제
+  // 무작위 10개 삭제
   srand(time(NULL));
   i = 0;
-  while (i < 20) {
+  while (i < 15) {
     int ind = rand() % 100 + 1;
     printf("delete key : %d, i : %d\n", ind, i);
     success = tree_delete(tree, ind);
@@ -281,7 +281,7 @@ bool tree_borrow_key(struct b_node *parent, struct b_node *hungry) {
      * The child would be taken from kind : children[kind->num_key]
      * The key would go up from kind to parent : kind->data[kind->num_key - 1] */
     node_insert_datum(hungry, parent->data[index - 1], 
-                      kind->children[kind->num_key], NULL);
+                      kind->children[kind->num_key], hungry->children[0]);
     parent->data[index - 1] = kind->data[kind->num_key - 1];
     node_delete_datum(kind, parent->data[index - 1].key, kind->num_key - 1);
   // Use node on the right
@@ -390,15 +390,17 @@ bool node_delete_datum(struct b_node *node, int key, int known_index) {
 
   if (index > -1) {
     datum_empty(node, index);
-    int i;
-    for (i = index; i < node->num_key - 1; i++) {
-      node->data[i] = node->data[i + 1];
+    if (index < node->num_key - 1) {
+      int i;
+      for (i = index; i < node->num_key - 1; i++) {
+        node->data[i] = node->data[i + 1];
+        node->children[i] = node->children[i + 1];
+      }
+      datum_empty(node, i);
       node->children[i] = node->children[i + 1];
     }
-    datum_empty(node, i);
-    node->children[i] = node->children[i + 1];
-    node->children[node->num_key] = NULL;
 
+    node->children[node->num_key] = NULL;
     node->num_key -= 1; // 동작이 보장되므로 -- 식으로 써도. TODO 고려
     return true;
   }
@@ -574,7 +576,7 @@ void unit_test() {
   result = tree_insert(test, (struct datum) {7});
   result = tree_insert(test, (struct datum) {9});
   result = tree_insert(test, (struct datum) {12});
-  result = tree_insert(test, (struct datum) {14});
+  // result = tree_insert(test, (struct datum) {14});
   result = tree_insert(test, (struct datum) {16});
   result = tree_insert(test, (struct datum) {18});
   result = tree_insert(test, (struct datum) {19});
@@ -622,8 +624,18 @@ void unit_test() {
   result = tree_insert(test, (struct datum) {64});
   result = tree_insert(test, (struct datum) {58});
   result = tree_insert(test, (struct datum) {66});
+  /*
+  result = tree_insert(test, (struct datum) {67});
+  result = tree_insert(test, (struct datum) {68});
+  result = tree_insert(test, (struct datum) {69});
+  result = tree_insert(test, (struct datum) {70});
+  result = tree_insert(test, (struct datum) {71});
+  result = tree_insert(test, (struct datum) {72});
+  result = tree_insert(test, (struct datum) {73});
+  result = tree_insert(test, (struct datum) {74});
+*/
 
-  print_tree(test->root, 0);
+  // print_tree(test->root, 0);
 
 /*  // 중복키
   result = tree_insert(test, (struct datum) {22});
@@ -654,4 +666,56 @@ void unit_test() {
   result = tree_remove(test, 67);
   print_tree(test->root, 0);*/
 
+  result = tree_delete(test, 67);
+  result = tree_delete(test, 10);
+  result = tree_delete(test, 38);
+  result = tree_delete(test, 11);
+  result = tree_delete(test, 2);
+  result = tree_delete(test, 14);
+  result = tree_delete(test, 23);
+  result = tree_delete(test, 15);
+  result = tree_delete(test, 32);
+  result = tree_delete(test, 35);
+  result = tree_delete(test, 40);
+  result = tree_delete(test, 43);
+  result = tree_delete(test, 51);
+  result = tree_delete(test, 47);
+  result = tree_delete(test, 49);
+  result = tree_delete(test, 52);
+  result = tree_delete(test, 29);
+  result = tree_delete(test, 66);
+
+  // print_tree(test->root, 0);
+
+  // Wrong Execution
+  result = tree_delete(test, 57);
+  result = tree_delete(test, 5);
+  result = tree_delete(test, 1);
+  result = tree_delete(test, 6);
+  result = tree_delete(test, 9);
+  result = tree_delete(test, 14);
+  result = tree_delete(test, 17);
+  result = tree_delete(test, 32);
+  result = tree_delete(test, 20);
+  result = tree_delete(test, 45);
+
+  printf("result : %d\n", result);
+  // print_tree(test->root, 0);
+
+
+  // print_tree(test->root, 0);
+
+  // ERROR
+  result = tree_delete(test, 47);
+  result = tree_delete(test, 53);
+  result = tree_delete(test, 50);
+  result = tree_delete(test, 48);
+  result = tree_delete(test, 56);
+  result = tree_delete(test, 29);
+  result = tree_delete(test, 66);
+  result = tree_delete(test, 23);
+
+  print_tree(test->root, 0);
+
+  printf("휘유\n");
 }
