@@ -45,8 +45,7 @@ int node_find_key(struct b_node *node, int key);
 bool datum_empty(struct b_node *cur, int index);
 
 int tree_swap_key(struct b_node *node, int key);
-/* -------------- 미구현 or unit test 필요 -------------- */
-bool tree_remove(struct b_tree *tree, int key);
+bool tree_delete(struct b_tree *tree, int key);
 bool tree_borrow_key(struct b_node *parent, struct b_node *hungry);
 struct b_node *tree_bind_node(struct b_node *parent, struct b_node *hungry);
 int node_find_child_index(struct b_node *parent, struct b_node *child);
