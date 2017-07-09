@@ -18,26 +18,26 @@ int main() {
   // unit_test();
 
   struct b_tree *tree = tree_init();
-  int keys = 101;
+  int keys = 1000000 + 1;
   bool success;
   int i;
   for (i = 1; i < keys; i++) {
     success = tree_insert(tree, (struct datum) {i});
   }
-
-  // 무작위 10개 삭제
+  
+  // 무작위 10000개 삭제
   srand(time(NULL));
   i = 0;
-  while (i < 15) {
-    int ind = rand() % 100 + 1;
-    printf("delete key : %d, i : %d\n", ind, i);
+  while (i < 10000) {
+    int ind = rand() % (keys - 1) + 1;
     success = tree_delete(tree, ind);
-    printf("success : %d\n", success);
+    printf("delete key : %d, i : %d, success : %d\n", ind, i, success);
     i += 1;
   } 
 
   print_tree(tree->root, 0);
 
+  puts("고생했당!");
   return 0;
 }
 
@@ -259,6 +259,10 @@ bool tree_delete(struct b_tree *tree, int key) {
     }
   }
   node_delete_datum(cur, key, -1);
+
+  if (tree->root->data[0].key == 0) {  // for the case after bind : 0 root
+    tree->root = tree->root->children[0];
+  }
 }
 
 /* if node(hungry)->num_key < MIN_KEY while searching to delete,
@@ -401,7 +405,7 @@ bool node_delete_datum(struct b_node *node, int key, int known_index) {
     }
 
     node->children[node->num_key] = NULL;
-    node->num_key -= 1; // 동작이 보장되므로 -- 식으로 써도. TODO 고려
+    node->num_key -= 1;
     return true;
   }
 
@@ -498,7 +502,6 @@ int node_find_child_index(struct b_node *parent, struct b_node *child) {
 }
 
 bool print_tree(struct b_node *cur, int depth) {
-  // struct b_node *cur = tree->root;
   if (cur == NULL) {
     return false;
   }
@@ -558,162 +561,26 @@ void unit_test() {
   bool result = false;
   struct datum d;
 
-  result = tree_insert(test, (struct datum) {44});
-  result = tree_insert(test, (struct datum) {57});
-  result = tree_insert(test, (struct datum) {67});
-  result = tree_insert(test, (struct datum) {60});
-  result = tree_insert(test, (struct datum) {24});
-  result = tree_insert(test, (struct datum) {5});
-  result = tree_insert(test, (struct datum) {10});
-  result = tree_insert(test, (struct datum) {1});
-  result = tree_insert(test, (struct datum) {38});
-  result = tree_insert(test, (struct datum) {3});
-  result = tree_insert(test, (struct datum) {4});
-  result = tree_insert(test, (struct datum) {6});
-  result = tree_insert(test, (struct datum) {11});
-  result = tree_insert(test, (struct datum) {8});
-  result = tree_insert(test, (struct datum) {2});
-  result = tree_insert(test, (struct datum) {7});
-  result = tree_insert(test, (struct datum) {9});
-  result = tree_insert(test, (struct datum) {12});
-  // result = tree_insert(test, (struct datum) {14});
-  result = tree_insert(test, (struct datum) {16});
-  result = tree_insert(test, (struct datum) {18});
-  result = tree_insert(test, (struct datum) {19});
-  result = tree_insert(test, (struct datum) {23});
-  result = tree_insert(test, (struct datum) {17});
-  result = tree_insert(test, (struct datum) {30});
-  result = tree_insert(test, (struct datum) {15});
-  result = tree_insert(test, (struct datum) {25});
-  result = tree_insert(test, (struct datum) {27});
-  result = tree_insert(test, (struct datum) {28});
-  result = tree_insert(test, (struct datum) {31});
-  result = tree_insert(test, (struct datum) {32});
-  result = tree_insert(test, (struct datum) {34});
-  result = tree_insert(test, (struct datum) {26});
-  result = tree_insert(test, (struct datum) {35});
-  result = tree_insert(test, (struct datum) {37});
-  result = tree_insert(test, (struct datum) {40});
-  result = tree_insert(test, (struct datum) {33});
-  result = tree_insert(test, (struct datum) {41});
-  result = tree_insert(test, (struct datum) {43});
-  result = tree_insert(test, (struct datum) {42});
-  result = tree_insert(test, (struct datum) {13});
-  result = tree_insert(test, (struct datum) {20});
-  result = tree_insert(test, (struct datum) {51});
-  result = tree_insert(test, (struct datum) {22});
-  result = tree_insert(test, (struct datum) {21});
-  result = tree_insert(test, (struct datum) {45});
-  result = tree_insert(test, (struct datum) {46});
-  result = tree_insert(test, (struct datum) {36});
-  result = tree_insert(test, (struct datum) {47});
-  result = tree_insert(test, (struct datum) {61});
-  result = tree_insert(test, (struct datum) {65});
-  result = tree_insert(test, (struct datum) {59});
-  result = tree_insert(test, (struct datum) {53});
-  result = tree_insert(test, (struct datum) {49});
-  result = tree_insert(test, (struct datum) {39});
-  result = tree_insert(test, (struct datum) {50});
-  result = tree_insert(test, (struct datum) {48});
-  result = tree_insert(test, (struct datum) {62});
-  result = tree_insert(test, (struct datum) {63});
-  result = tree_insert(test, (struct datum) {52});
-  result = tree_insert(test, (struct datum) {55});
-  result = tree_insert(test, (struct datum) {56});
-  result = tree_insert(test, (struct datum) {29});
-  result = tree_insert(test, (struct datum) {64});
-  result = tree_insert(test, (struct datum) {58});
-  result = tree_insert(test, (struct datum) {66});
-  /*
-  result = tree_insert(test, (struct datum) {67});
-  result = tree_insert(test, (struct datum) {68});
-  result = tree_insert(test, (struct datum) {69});
-  result = tree_insert(test, (struct datum) {70});
-  result = tree_insert(test, (struct datum) {71});
-  result = tree_insert(test, (struct datum) {72});
-  result = tree_insert(test, (struct datum) {73});
-  result = tree_insert(test, (struct datum) {74});
-*/
+  int keys = 101;
+  bool success;
+  int i;
+  for (i = 1; i < keys; i++) {
+    success = tree_insert(test, (struct datum) {i});
+  }
 
-  // print_tree(test->root, 0);
-
-/*  // 중복키
-  result = tree_insert(test, (struct datum) {22});
-  result = tree_insert(test, (struct datum) {16});
-  print_tree(test->root, 0);
-*/
-  // bind - 오른쪽 형제가 있을 때
-/*  result = tree_remove(test, 44);
-  result = tree_remove(test, 38);
-  print_tree(test->root, 0);
-  result = tree_remove(test, 30);
-  print_tree(test->root, 0);*/
-
-/*  // borrow - 왼쪽 형제를 이용해서 
-  result = tree_remove(test, 67);
-  print_tree(test->root, 0);*/
-
-/*  // borrow - 오른쪽 형제를 이용해서
-  result = tree_remove(test, 3);
-  result = tree_remove(test, 2);
-  print_tree(test->root, 0);*/
-
-/*  // bind - 왼쪽 형제를 이용해서
-  result = tree_remove(test, 44);
-  print_tree(test->root, 0);
-  result = tree_remove(test, 38);
-  print_tree(test->root, 0);
-  result = tree_remove(test, 67);
-  print_tree(test->root, 0);*/
-
-  result = tree_delete(test, 67);
-  result = tree_delete(test, 10);
-  result = tree_delete(test, 38);
-  result = tree_delete(test, 11);
-  result = tree_delete(test, 2);
-  result = tree_delete(test, 14);
-  result = tree_delete(test, 23);
-  result = tree_delete(test, 15);
-  result = tree_delete(test, 32);
-  result = tree_delete(test, 35);
-  result = tree_delete(test, 40);
-  result = tree_delete(test, 43);
-  result = tree_delete(test, 51);
-  result = tree_delete(test, 47);
   result = tree_delete(test, 49);
-  result = tree_delete(test, 52);
-  result = tree_delete(test, 29);
-  result = tree_delete(test, 66);
-
+  result = tree_delete(test, 93);
+  result = tree_delete(test, 56);
+  result = tree_delete(test, 67);
+  result = tree_delete(test, 73);
+  result = tree_delete(test, 2);
+  result = tree_delete(test, 83);
+  result = tree_delete(test, 25);
   // print_tree(test->root, 0);
-
-  // Wrong Execution
-  result = tree_delete(test, 57);
-  result = tree_delete(test, 5);
-  result = tree_delete(test, 1);
-  result = tree_delete(test, 6);
-  result = tree_delete(test, 9);
-  result = tree_delete(test, 14);
-  result = tree_delete(test, 17);
-  result = tree_delete(test, 32);
-  result = tree_delete(test, 20);
-  result = tree_delete(test, 45);
-
-  printf("result : %d\n", result);
-  // print_tree(test->root, 0);
-
-
-  // print_tree(test->root, 0);
+  result = tree_delete(test, 63);
 
   // ERROR
-  result = tree_delete(test, 47);
-  result = tree_delete(test, 53);
-  result = tree_delete(test, 50);
-  result = tree_delete(test, 48);
-  result = tree_delete(test, 56);
-  result = tree_delete(test, 29);
-  result = tree_delete(test, 66);
-  result = tree_delete(test, 23);
+  result = tree_delete(test, 94);
 
   print_tree(test->root, 0);
 
