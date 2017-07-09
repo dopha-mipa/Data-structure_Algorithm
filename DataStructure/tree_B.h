@@ -41,16 +41,15 @@ bool node_check_same_key(struct b_node *node, int key);
 
 struct datum tree_find_datum(struct b_tree *tree, int key);
 int node_find_key(struct b_node *node, int key);
-bool node_delete_datum(struct b_node *node, int key);
 
 bool datum_empty(struct b_node *cur, int index);
 
+bool tree_swap_key(struct b_node *node, int key);
 /* -------------- 미구현 or unit test 필요 -------------- */
 bool tree_remove(struct b_tree *tree, int key);
 bool tree_borrow_key(struct b_node *parent, struct b_node *hungry);
 bool tree_bind_node(struct b_node *parent, struct b_node *hungry);
-bool tree_swap_key(struct b_node *node, int key);
 int node_find_child_index(struct b_node *parent, struct b_node *child);
-bool node_delete_datum(struct b_node *node, int key);
+bool node_delete_datum(struct b_node *node, int key, int known_index);
 
-bool print_tree(struct b_tree *tree);
+bool print_tree(struct b_node *cur, int depth);

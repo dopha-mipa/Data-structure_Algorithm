@@ -7,7 +7,8 @@
  *    4. bool 연산값들의 처리! 이왕 있는 김에 - 이런 데서 코드 길이가 길어지나?
  *    5. 중복키 확인해보기 (unit test);
  *    6. YD : 주석을 더 잘 달자. 라고 추천해줌
- *    7. 아 search key 관련 메소드에서도 이진 탐색 하도록
+ *
+ * (struct datum) {0} means NULL; Guarantees key < 1 does not exist
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,7 +29,7 @@ int main() {
   return 0;
 }
 
-/* B-tree init */
+/* B-tree init. allocates memory */
 struct b_tree *tree_init() {
   struct b_tree *tree = (struct b_tree *) malloc(sizeof(struct b_tree));
   tree->root = NULL;
@@ -37,8 +38,7 @@ struct b_tree *tree_init() {
   return tree;
 }
 
-/* if cur == NULL, create new b_node
- * else realloc size of b_node->data and b_node->children 
+/* b_node init. allocates memory
  * WARN : node->num_key must be updated after execution T_T */
 struct b_node *node_init() {
   struct b_node *node;
@@ -82,7 +82,7 @@ bool tree_insert(struct b_tree *tree, struct datum d) {
     if (node_check_full(cur)) { // for leaf node
       node_split(cur, parent);
       if (tree->root == cur) {
-        cur = tree_next_node(cur, d.key);
+        cur = tree_next_node(cur, d.key);  // if cur == tree->root
       } else {
         cur = tree_next_node(parent, d.key);
       }
@@ -123,7 +123,8 @@ bool node_check_same_key(struct b_node *node, int key) {
   return false;
 }
 
-/* Splits cur when cur->num_key = MAX_data */
+/* Splits cur when cur->num_key = MAX_data 
+ * if cur is root of the tree, cur is still root after the execution */
 bool node_split(struct b_node *cur, struct b_node *parent) {
   if (cur == NULL) {
     return false;
@@ -137,7 +138,6 @@ bool node_split(struct b_node *cur, struct b_node *parent) {
 
     cur->data[0] = cur->data[middle];
     datum_empty(cur, middle);
-    // cur = node_init(cur, 1);
     cur->num_key = 1;
     cur->children[0] = left;
     cur->children[1] = right;
@@ -152,7 +152,8 @@ bool node_split(struct b_node *cur, struct b_node *parent) {
   return true;
 }
 
-/* WARN : Must guarantee MIN_KEY == to - from */
+/* create new b_node, copy half - 1 data (from ~ to) from cur
+ * WARN : Must guarantee MIN_KEY == to - from */
 struct b_node *node_copy_half(struct b_node *cur, int from, int to) {
   struct b_node *new = node_init();
   new->children[0] = cur->children[from];
@@ -161,7 +162,7 @@ struct b_node *node_copy_half(struct b_node *cur, int from, int to) {
   int i;
   for (i = from; i < to; i++) {
     node_insert_datum(new, cur->data[i], NULL, cur->children[i + 1]);
-    datum_empty(cur, i);  // free 등은 memory leak의 위험
+    datum_empty(cur, i);
     cur->children[i + 1] = NULL;
   }
   cur->num_key -= (to - from);
@@ -186,7 +187,8 @@ struct b_node *tree_next_node(struct b_node *node, int key) {
 }
 
 /* Insertion sort  
- * Guarantees node->num_key < MAX_KEY (splitted before execution) */
+ * Guarantees node->num_key < MAX_KEY (splitted before execution)
+ * Insertion occurs only when node is leaf  */
 bool node_insert_datum(struct b_node *node, struct datum d, 
                        struct b_node *left, struct b_node *right) {
   if (node == NULL) {
@@ -205,9 +207,6 @@ bool node_insert_datum(struct b_node *node, struct datum d,
   }
 
   node->data[index + 1] = d;
-  // TODO : 한차례 커밋에 코멘트를 남겨둠.. 이건 나의 혜안이었던 거시다..
-  // 새로 추가하는 키가 제일 앞에 갈 거라면.. 필요한건 left가 될 수 도 있..
-  // 은 개뿔 뭔가 이유가 있어서 썼었는데 기억이 안난다...ㅜㅠㅜㅠ
   if (left != NULL) {
     node->children[index + 1] = left;
   }
@@ -236,7 +235,8 @@ struct datum tree_find_datum(struct b_tree *tree, int key) {
 }
 
 /* if key is in b_node, return index of datum in node->data 
- * else return -1 */
+ * else return -1 
+ * Using binary search */
 int node_find_key(struct b_node *node, int key) {
   if (node == NULL) {
     return -1;
@@ -247,9 +247,9 @@ int node_find_key(struct b_node *node, int key) {
   int index;
 
   int from = 0;
-  int end = node->num_key;
-  while (from < end) {
-    int middle = from + (end - from) / 2;
+  int to = node->num_key;
+  while (from < to) {  // binary search
+    int middle = from + (to - from) / 2;
 
     if (node->data[middle].key == key) {
       index = middle;
@@ -257,11 +257,11 @@ int node_find_key(struct b_node *node, int key) {
     } else if (node->data[middle].key < key) {
       from = middle + 1;
     } else {
-      end = middle - 1;
+      to = middle - 1;
     }
   }
 
-  if (from >= end) {
+  if (from >= to) {
     if (node->data[from].key == key) {
       index = from;
     } else {
@@ -282,33 +282,31 @@ bool tree_remove(struct b_tree *tree, int key) {
   struct b_node *parent = NULL;
   struct b_node *cur = tree->root;
   while (!node_check_leaf(cur) && tree->root != cur) {
-    if (cur->num_key <= MIN_KEY) {
+    if (cur->num_key < MIN_KEY) {
       if (!tree_borrow_key(parent, cur)) {
         tree_bind_node(parent, cur);
       }
     }
     if (node_find_key(cur, key)) {
-      /* 키를 오륹쪽 leaf의 제일 작은 값으로 바꿔준다  swap*/
-      /* 그리고는 사실 바로 parent랑 자식 노드 확보해서 하면 되지 않나..?*/
-      /* 최소 부모노드만 확보해도 뭐 */
+      tree_swap_key(cur, key);
     }
  
     parent = cur;
     tree_next_node(cur, key);
   }
 
-  if (cur->num_key <= MIN_KEY && tree->root != cur) {
+  if (cur->num_key < MIN_KEY && tree->root != cur) {
     if (!tree_borrow_key(parent, cur)) {
-        tree_bind_node(parent, cur);
+      tree_bind_node(parent, cur);
     }
-    /*삭제하기*/
+    node_delete_datum(cur, key, -1);
   }
 }
 
-/* if node(hungry)->num_key <= MIN_KEY while searching to delete,
- * if sibling of node(kind)->num_key > MIN_KEY : return true 
+/* if node(hungry)->num_key < MIN_KEY while searching to delete,
+ * if sibling of node(kind)->num_key >= MIN_KEY : return true 
  * else : return false 
- * hungry->num_key <= MIN_KEY, kind->num_key should be larger than MIN_KEY */
+ * hungry->num_key < MIN_KEY, kind->num_key should be larger than MIN_KEY */
 bool tree_borrow_key(struct b_node *parent, struct b_node *hungry) {
   if (hungry == NULL || parent == NULL) {
     return false;
@@ -319,7 +317,7 @@ bool tree_borrow_key(struct b_node *parent, struct b_node *hungry) {
   struct b_node *kind;
 
   // If child is the last pointer, use node on the left
-  if (index == dim && parent->children[index - 1]->num_key > MIN_KEY) {
+  if (index == dim && parent->children[index - 1]->num_key >= MIN_KEY) {
     kind = parent->children[index - 1];
     /* The key would be taken from parent : data[index - 1]
      * The child would be taken from kind : children[kind->num_key]
@@ -327,16 +325,16 @@ bool tree_borrow_key(struct b_node *parent, struct b_node *hungry) {
     node_insert_datum(hungry, parent->data[index - 1], 
                       kind->children[kind->num_key], NULL);
     parent->data[index - 1] = kind->data[kind->num_key - 1];
-    node_delete_datum(kind, kind->num_key - 1);
+    node_delete_datum(kind, parent->data[index - 1].key, kind->num_key - 1);
   // Use node on the right
-  } else if (index < dim && parent->children[index + 1]->num_key > MIN_KEY) {
+  } else if (index < dim && parent->children[index + 1]->num_key >= MIN_KEY) {
     kind = parent->children[index + 1];
     /* The key would be taken from parent : data[index]
      * The child would be taken from kind : children[0]
      * The key would go up from kind to parent : kind->data[0] */
     node_insert_datum(hungry, parent->data[index], NULL, kind->children[0]);
     parent->data[index] = kind->data[0];
-    node_delete_datum(kind, 0);
+    node_delete_datum(kind, parent->data[index].key, 0);
   }
 
   if (kind == NULL) {
@@ -345,6 +343,7 @@ bool tree_borrow_key(struct b_node *parent, struct b_node *hungry) {
   return true;
 }
 
+// TODO : 으앙 합쳐지기는 하는데 지워져야 하는 포인터는 중복이고 이상한게 지워짐 ㅜㅠ
 bool tree_bind_node(struct b_node *parent, struct b_node *hungry) {
   if (parent == NULL || hungry == NULL) {
     return false;
@@ -363,8 +362,9 @@ bool tree_bind_node(struct b_node *parent, struct b_node *hungry) {
       node_insert_datum(kind, hungry->data[i], NULL, hungry->children[i + 1]);
     }
 
-    free(hungry); // TODO : ? 없어지는 거니까 맞지 않을까?
-    node_delete_datum(parent, index - 1);
+    parent->children[index] = kind;
+    free(hungry);
+    node_delete_datum(parent, parent->data[index - 1].key, index - 1);
 
   // if hungry has right sibling
   } else if (index > -1 && index < parent->num_key) {
@@ -376,9 +376,9 @@ bool tree_bind_node(struct b_node *parent, struct b_node *hungry) {
       node_insert_datum(hungry, kind->data[i], NULL, kind->children[i + 1]);
     }
 
-    free(kind); // TODO : ? 없어지는 거니까 맞지 않을까?
-    parent->children[index + 1] = hungry;
-    node_delete_datum(parent, index);
+    parent->children[index + 1] = hungry;  // 순서에 주의!?
+    free(kind);
+    node_delete_datum(parent, parent->data[index].key, index);
   }
 
   if (index == -1) {
@@ -412,7 +412,7 @@ bool tree_swap_key(struct b_node *node, int key) {
 
 /* Find the index of the child among the parent->children */
 int node_find_child_index(struct b_node *parent, struct b_node *child) {
-  if (child == NULL || parent == NULL) {  // 없어도 될 것 같지만 앞 일을 몰라서
+  if (child == NULL || parent == NULL) {
     return -1;
   }
 
@@ -430,13 +430,22 @@ int node_find_child_index(struct b_node *parent, struct b_node *child) {
 }
 
 /* Check whether datum(datum.key == key) is in the node or not, 
- * delete datum, sort back of node->data */
-bool node_delete_datum(struct b_node *node, int key) {
+ * delete datum, sort back of node->data 
+ * Deletion occurs only when node is leaf 
+ * if known_index == -1, deletion occurs with key value
+ * else deletion uses index */
+bool node_delete_datum(struct b_node *node, int key, int known_index) {
   if (node == NULL) {
     return false;
   }
 
-  int index = node_find_key(node, key);
+  int index;
+  if (known_index != -1) {
+    index = known_index;
+  } else {
+    index = node_find_key(node, key);
+  }
+
   if (index > -1) {
     datum_empty(node, index);
     int i;
@@ -444,8 +453,10 @@ bool node_delete_datum(struct b_node *node, int key) {
       node->data[i] = node->data[i + 1];
       node->children[i] = node->children[i + 1];
     }
-
+    datum_empty(node, i);
+    node->children[i] = node->children[i + 1];
     node->children[node->num_key] = NULL;
+
     node->num_key -= 1; // 동작이 보장되므로 -- 식으로 써도. TODO 고려
     return true;
   }
@@ -453,10 +464,38 @@ bool node_delete_datum(struct b_node *node, int key) {
   return false;
 }
 
-/* Replace old datum to {0} (due to memory leak) */
+/* Replace old datum to {0} (Just changes the value due to memory leak) */
 bool datum_empty(struct b_node *cur, int index) {
   cur->data[index] = (struct datum) {0};
   return true;
+}
+
+bool print_tree(struct b_node *cur, int depth) {
+  // struct b_node *cur = tree->root;
+  if (cur == NULL) {
+    return false;
+  }
+
+  int i, d;
+  if (cur->children[cur->num_key] != NULL) {
+    if (d == 0) {
+      printf(" ");
+    }
+    print_tree(cur->children[cur->num_key], depth + 1);
+  }
+
+  for (i = cur->num_key - 1; i > -1; i--) {
+    if (d != 0) {
+      printf(" ");
+    }
+    for (d = 0; d < depth; d++) {
+      printf("     ");
+    }
+    printf(" %d\n", cur->data[i].key);
+    print_tree(cur->children[i], depth + 1);
+  }
+
+  return false;
 }
 
 /* Return array of random keys[size] */
@@ -492,61 +531,91 @@ int *rand_key_generate(int size) {
 
 void unit_test() {
   // Test data tree_insert into b_node
-  bool result = false;
   struct b_tree *test = tree_init();
+  bool result = false;
+  struct datum d;
 
   result = tree_insert(test, (struct datum) {5});
   result = tree_insert(test, (struct datum) {10});
   result = tree_insert(test, (struct datum) {17});
   result = tree_insert(test, (struct datum) {24});
   result = tree_insert(test, (struct datum) {30});
-
-  struct datum d = tree_find_datum(test, 24);
-  printf("d.key : %d\n", d.key);
-
   result = tree_insert(test, (struct datum) {1});
   result = tree_insert(test, (struct datum) {3});
   result = tree_insert(test, (struct datum) {4});
-
   result = tree_insert(test, (struct datum) {6});
   result = tree_insert(test, (struct datum) {7});
   result = tree_insert(test, (struct datum) {9});
-
   result = tree_insert(test, (struct datum) {12});
   result = tree_insert(test, (struct datum) {14});
   result = tree_insert(test, (struct datum) {16});
-
   result = tree_insert(test, (struct datum) {18});
   result = tree_insert(test, (struct datum) {19});
   result = tree_insert(test, (struct datum) {23});
-  
-  d = tree_find_datum(test, 19);
-  printf("d.key : %d\n", d.key);
-
   result = tree_insert(test, (struct datum) {15});
   result = tree_insert(test, (struct datum) {25});
   result = tree_insert(test, (struct datum) {27});
   result = tree_insert(test, (struct datum) {28});
-
   result = tree_insert(test, (struct datum) {31});
-  result = tree_insert(test, (struct datum) {32});
-  result = tree_insert(test, (struct datum) {34});
+  // result = tree_insert(test, (struct datum) {32});
+  // result = tree_insert(test, (struct datum) {34});
+  result = tree_insert(test, (struct datum) {26});
 
-  d = tree_find_datum(test, 27);
-  printf("d.key : %d\n", d.key);
-
+/*
+ *                          12
+ *      4     7                    17       23           27
+ * 1 3    5 6   9 10     14 15 16     18 19    24 25 26      28 30 31 32 34
+ */
+/*  d = tree_find_datum(test, 27);
   d = tree_find_datum(test, 32);
-  printf("d.key : %d\n", d.key);
-
   d = tree_find_datum(test, 6);
-  printf("d.key : %d\n", d.key);
+  d = tree_find_datum(test, 5200); // 0*/
 
-  d = tree_find_datum(test, 5200);
-  // printf("%d\n", d);
-  printf("d.key : %d\n", d.key);
-
-
+/*
   tree_swap_key(test->root, 12);
-  printf("휘유");
+  tree_swap_key(test->root->children[0], 4);
+  tree_swap_key(test->root->children[1], 23);*/
 
+/*  
+  // node 안의 key 가 넉넉할때
+  result = node_delete_datum(test->root->children[1]->children[3], 32, -1);
+
+  // node 안의 key 가 3개일때
+  result = node_delete_datum(test->root->children[1]->children[0], 16, -1);
+
+  // node 안의 key 가 부족할때 - 키를 빌릴수 있을때 borrow : kind는 오른쪽
+  result = tree_borrow_key(test->root->children[1], test->root->children[1]->children[1]);
+  result = node_delete_datum(test->root->children[1]->children[1], 19, -1);
+
+  
+  // borrow key - kind가 왼쪽
+  result = tree_borrow_key(test->root->children[1], test->root->children[1]->children[3]);
+  result = node_delete_datum(test->root->children[1]->children[3], 30, -1);
+  
+
+  오른쪽 아니면서 키가 부족할때 bind
+  result = tree_bind_node(test->root->children[0], test->root->children[0]->children[0]);
+  result = node_delete_datum(test->root->children[0]->children[0], 3, -1);
+
+  result = node_delete_datum(test->root->children[1]->children[3], 34, -1);
+
+  print_tree(test->root, 0);
+  printf("   \n");
+  
+  // 가장 오른쪽이면서 key 가 부족할때
+  result = tree_bind_node(test->root->children[0], test->root->children[0]->children[2]);
+  result = node_delete_datum(test->root->children[0]->children[2], 9, -1);
+  
+  print_tree(test->root, 0);*/
+
+  // 내부 노드 삭제 
+  result = tree_swap_key(test->root->children[1], 17);
+
+  print_tree(test->root, 0);
+  result = tree_remove(test, 17);
+  printf("\n\n");
+  print_tree(test->root, 0);
+
+
+  printf("휘유\n");
 }
