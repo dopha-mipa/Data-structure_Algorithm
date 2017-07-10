@@ -259,6 +259,7 @@ bool tree_delete(struct b_tree *tree, int key) {
     }
   }
   node_delete_datum(cur, key, -1);
+  tree->num_data -= 1;
 
   if (tree->root->data[0].key == 0) {  // for the case after bind : 0 root
     tree->root = tree->root->children[0];
