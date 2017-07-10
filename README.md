@@ -3,18 +3,17 @@
 *(Introduction to Algorithms (Thomas H. Cormen +) 3rd Edition)*
 
  * Sort - bubble, merge, heap, quick, topological
- * Tree - binary, AVL, B
+ * Tree - binary, AVL
  * Graph - prim
  * Search - BFS, DFS
  * Hash table
  * Strong Connected Component
 
 ## Algorithm  
- * Baekjoon - Questions from acmicpc.net  
+ * Baekjoon - Questions from acmicpc.net
  * EWHA_2017_1 - Computer Algorithm (Prof. Sangho Lee)  
    The celebrity problem  
    GCD using euclidean method  
    The best sum of number triangle  
-   Best-first-search for 0-1 knapsack  
- * N_queens - Search the answer with BFS, DFS, DFID, Hill Climbing  
+   Best-first-search for 0-1 knapsack
 
