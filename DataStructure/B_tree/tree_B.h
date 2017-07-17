@@ -1,9 +1,6 @@
 /* 2017. 07. 06. 
  * B-tree header
  * Nayoun Seo (puremint09@gmail.com) */
-#define MIN_KEY 3  // 5차 B-tree (홀수차)
-#define MAX_KEY 2 * MIN_KEY - 1
-
 typedef enum bool {false, true} bool;
 
 struct datum {
@@ -19,6 +16,9 @@ struct b_node {
 struct b_tree {
   struct b_node *root;
   int num_data;
+  /* if the maximum number of key a node can hold is 5, min_key should be 3 */
+  int min_key;
+  int max_key;
 };
 
 /* Init */

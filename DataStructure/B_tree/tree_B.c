@@ -11,33 +11,20 @@
 #include <time.h>
 #include "tree_B.h"
 
-int *rand_key_generate(int size);
 void unit_test();
+void actual_test();
+
+int MIN_KEY;
+int MAX_KEY;
 
 int main() {
+  printf("The minimum number of the data per node would be : ");
+  scanf("%d", &MIN_KEY);
+  MAX_KEY = 2 * MIN_KEY - 1;
+
   // unit_test();
+  actual_test();
 
-  struct b_tree *tree = tree_init();
-  int keys = 1000000 + 1;
-  bool success;
-  int i;
-  for (i = 1; i < keys; i++) {
-    success = tree_insert(tree, (struct datum) {i});
-  }
-  
-  // 무작위 10000개 삭제
-  srand(time(NULL));
-  i = 0;
-  while (i < 10000) {
-    int ind = rand() % (keys - 1) + 1;
-    success = tree_delete(tree, ind);
-    printf("delete key : %d, i : %d, success : %d\n", ind, i, success);
-    i += 1;
-  } 
-
-  print_tree(tree->root, 0);
-
-  puts("고생했당!");
   return 0;
 }
 
@@ -46,6 +33,8 @@ struct b_tree *tree_init() {
   struct b_tree *tree = (struct b_tree *) malloc(sizeof(struct b_tree));
   tree->root = NULL;
   tree->num_data = 0;
+  tree->min_key = MIN_KEY;
+  tree->max_key = 2 * MIN_KEY - 1;
 
   return tree;
 }
@@ -58,8 +47,13 @@ struct b_node *node_init() {
   node = (struct b_node *) malloc(sizeof(struct b_node));
   node->num_key = 0;
   node->data = (struct datum *) malloc(sizeof(struct datum) * MAX_KEY);
+  node->data = memset(node->data, 0, sizeof(struct datum) * MAX_KEY);
   node->children = (struct b_node **) malloc(
                         sizeof(struct b_node *) * (MAX_KEY + 1));
+  int i;
+  for (i = 0; i < MAX_KEY + 1; i++) {
+    node->children[0] = NULL;
+  }
 
   return node;
 }
@@ -92,12 +86,8 @@ bool tree_insert(struct b_tree *tree, struct datum d) {
     } // end of going down
 
     if (node_check_full(cur)) { // for leaf node
-      cur = node_split(cur, parent);
-      if (tree->root == cur) {
-        cur = tree_next_node(cur, d.key);  // if cur == tree->root
-      } else {
-        cur = tree_next_node(parent, d.key);
-      }
+      cur = node_split(cur, parent);  // 수정 : 부모를 반환
+      cur = tree_next_node(cur, d.key);
     }
     node_insert_datum(cur, d, NULL, NULL);
   }
@@ -108,6 +98,10 @@ bool tree_insert(struct b_tree *tree, struct datum d) {
 
 /* Check whether the key is already in or not */
 bool node_check_same_key(struct b_node *node, int key) {
+  if (node == NULL) {
+    return false;
+  }
+
   int i;
   for (i = 0; i < node->num_key; i++) {
     if (node->data[i].key == key) {
@@ -119,6 +113,10 @@ bool node_check_same_key(struct b_node *node, int key) {
 
 /* Check whether node is full or not */
 bool node_check_full(struct b_node *node) {
+  if (node == NULL) {
+    return false;
+  }
+
   bool checked = false;
   if (node->num_key == MAX_KEY) {
     checked = true;
@@ -127,7 +125,8 @@ bool node_check_full(struct b_node *node) {
 }
 
 /* Splits cur when cur->num_key = MAX_data 
- * if cur is root of the tree, cur is still root after the execution */
+ * if cur is root of the tree, cur is still root after the execution 
+ * return pointer of parent to search next node */
 struct b_node *node_split(struct b_node *cur, struct b_node *parent) {
   if (cur == NULL) {
     return NULL;
@@ -144,8 +143,8 @@ struct b_node *node_split(struct b_node *cur, struct b_node *parent) {
     cur->num_key = 1;
     cur->children[0] = left;
     cur->children[1] = right;
+    parent = cur;  // to continue search from the parent
 
-    parent = cur;
   } else {  // cur != root -- cur => left
     struct datum go_up = cur->data[middle];
     cur->num_key = middle;
@@ -160,6 +159,10 @@ struct b_node *node_split(struct b_node *cur, struct b_node *parent) {
 /* create new b_node, copy half - 1 data (from ~ to) from cur
  * WARN : Must guarantee MIN_KEY == to - from */
 struct b_node *node_copy_half(struct b_node *cur, int from, int to) {
+  if (cur == NULL) {
+    return NULL;
+  }
+
   struct b_node *new = node_init();
   new->children[0] = cur->children[from];
   cur->children[from] = NULL;
@@ -175,8 +178,7 @@ struct b_node *node_copy_half(struct b_node *cur, int from, int to) {
 }
 
 /* Insertion sort  
- * Guarantees node->num_key < MAX_KEY (splitted before execution)
- * Insertion occurs only when node is leaf */
+ * Guarantees node->num_key < MAX_KEY (splitted before execution) */
 bool node_insert_datum(struct b_node *node, struct datum d, 
                        struct b_node *left, struct b_node *right) {
   if (node == NULL) {
@@ -230,7 +232,7 @@ struct b_node *tree_next_node(struct b_node *node, int key) {
  *   if the sibling->num_key >= MIN_key, borrow a key from parent 
  *   else combine with key of the parent, sibling */
 bool tree_delete(struct b_tree *tree, int key) {
-  if (tree->root == NULL) {
+  if (tree->root == NULL || tree->num_data == 0) {
     return false;
   }
 
@@ -258,14 +260,32 @@ bool tree_delete(struct b_tree *tree, int key) {
       cur = tree_bind_node(parent, cur);  // combine with kind sibling
     }
   }
-  node_delete_datum(cur, key, -1);
 
-  if (tree->root->data[0].key == 0) {  // for the case after bind : 0 root
+  bool success = node_delete_datum(cur, key, -1);
+  if (success == true) {
+    tree->num_data -= 1;
+  }
+
+  // if the node is empty, free the node
+  if (cur->num_key == 0) {
+    int index = node_find_child_index(parent, cur);  // returns -1 when cur == root
+
+    if (index > -1 && parent != NULL) {  // if cur is not the root
+      parent->children[index] = NULL;  // cur => NULL
+    } else if (parent == NULL) {  // if cur is the root
+      tree->root = NULL;
+    }
+    free(cur);
+  }
+
+  // for the case after bind : 0 root
+  if (tree->root != NULL && tree->root->data[0].key == 0) {
     tree->root = tree->root->children[0];
   }
+  return success;
 }
 
-/* if node(hungry)->num_key < MIN_KEY while searching to delete,
+/* Executed if node(hungry)->num_key < MIN_KEY while searching to delete,
  * if sibling of node(kind)->num_key >= MIN_KEY : return true 
  * else : return false 
  * hungry->num_key < MIN_KEY, kind->num_key should be larger than MIN_KEY */
@@ -299,6 +319,8 @@ bool tree_borrow_key(struct b_node *parent, struct b_node *hungry) {
     node_delete_datum(kind, parent->data[index].key, 0);
   }
 
+  /* Since kind->num_key >= MIN_KEY was guaranted,
+   * there is no needs to free the node after node_delete_datum */
   if (kind == NULL) {
     return false;
   }
@@ -346,6 +368,7 @@ struct b_node *tree_bind_node(struct b_node *parent, struct b_node *hungry) {
     return hungry;
   }
 
+  /* free of the unnecessary node already happens before node_delete_datum */
   if (index == -1) {
     return NULL;
   }
@@ -377,9 +400,10 @@ int node_swap_key(struct b_node *node, int origin_key) {
 
 /* Check whether datum(datum.key == key) is in the node or not, 
  * delete datum, sort back of node->data 
- * Deletion occurs only when node is leaf 
  * if known_index == -1, deletion occurs with key value
- * else deletion uses index */
+ * else deletion uses index 
+ * WARN : MUST check whether the node is empty or not after execution!
+ * if node is empty, please free the node */
 bool node_delete_datum(struct b_node *node, int key, int known_index) {
   if (node == NULL) {
     return false;
@@ -408,12 +432,16 @@ bool node_delete_datum(struct b_node *node, int key, int known_index) {
     node->num_key -= 1;
     return true;
   }
-
+  // puts("인덱스 못 찾았다고 삭제에서?");
   return false;
 }
 
 /* Check whether node is a leaf or not */
 bool node_check_leaf(struct b_node *node) {
+  if (node == NULL) {
+    return false;
+  }
+
   bool checked = false;
   if (node->children[0] == NULL && node->children[1] == NULL) {
     checked = true;
@@ -423,6 +451,10 @@ bool node_check_leaf(struct b_node *node) {
 
 /* Replace old datum to {0} (Just changes the value due to memory leak) */
 bool datum_empty(struct b_node *cur, int index) {
+  if (cur == NULL) {
+    return false;
+  }
+
   cur->data[index] = (struct datum) {0};
   return true;
 }
@@ -430,6 +462,10 @@ bool datum_empty(struct b_node *cur, int index) {
 /* if key is in tree, return datum 
  * else return datum {0} */
 struct datum tree_find_datum(struct b_tree *tree, int key) {
+  if (tree->root == NULL || tree->num_data == 0) {
+    return (struct datum) {0};
+  }
+
   struct b_node *cur = tree->root;
   int index = node_find_key(cur, key);
   while (index == -1 && cur != NULL) {
@@ -525,39 +561,13 @@ bool print_tree(struct b_node *cur, int depth) {
   return true;
 }
 
-/* Return array of random keys[size] - Usually raise seg fault........ */
-int *rand_key_generate(int size) {
-  srand(time(NULL));
-  int largest = pow(2, 10);
-
-  bool *check_repett = (bool *) malloc(sizeof(bool) * (largest + 1));
-  check_repett = memset(check_repett, 0, sizeof(bool) * (largest + 1));
-  check_repett[0] = true;  // prevents 0 key
-
-  int *rand_arr = (int *) malloc(sizeof(int) * size);
-  rand_arr = memset(rand_arr, 0, sizeof(int) * size);
-  int index = 0;
-
-  while (size > -1) {
-    int temp = rand() % largest;
-    while (check_repett[temp]) {  // To avoid repetition of the same key
-      temp = rand();
-    }
-
-    rand_arr[index] = temp;
-    check_repett[temp] = true;
-
-    index += 1;
-    size -= 1;
-  }
-
-  return rand_arr;
-}
-
-/* unit test*/
+/* ------------------- test ------------------- */
 void unit_test() {
   // Test data tree_insert into b_node
-  struct b_tree *test = tree_init();
+  // struct b_tree *test = tree_init();
+  // init_tree(&tree);
+  struct b_tree *tree = tree_init();
+
   bool result = false;
   struct datum d;
 
@@ -565,24 +575,113 @@ void unit_test() {
   bool success;
   int i;
   for (i = 1; i < keys; i++) {
-    success = tree_insert(test, (struct datum) {i});
+    success = tree_insert(tree, (struct datum) {i});
   }
 
-  result = tree_delete(test, 49);
-  result = tree_delete(test, 93);
-  result = tree_delete(test, 56);
-  result = tree_delete(test, 67);
-  result = tree_delete(test, 73);
-  result = tree_delete(test, 2);
-  result = tree_delete(test, 83);
-  result = tree_delete(test, 25);
-  // print_tree(test->root, 0);
-  result = tree_delete(test, 63);
+  print_tree(tree->root, 0);
+  puts("========================");
 
-  // ERROR
-  result = tree_delete(test, 94);
+  success = tree_delete(tree, 32);
+  printf("key : 32, success : %d\n", success);
+  success = tree_delete(tree, 32);
+  printf("key : 32, success : %d\n", success);
+  
+  success = tree_delete(tree, 64);
+  printf("key : 64, success : %d\n", success);
+  success = tree_delete(tree, 64);
+  printf("key : 64, success : %d\n", success);
 
-  print_tree(test->root, 0);
+  print_tree(tree->root, 0);
+  puts("========================");
+
+  for (i = 1; i < keys; i++) {
+    success = tree_delete(tree, i);
+    if (i % 10 == 2) {
+      print_tree(tree->root, 0);
+      puts("========================");
+    }
+  }
+
+  success = tree_insert(tree, (struct datum) {24});
+  success = tree_insert(tree, (struct datum) {36});
+  success = tree_insert(tree, (struct datum) {73});
+  success = tree_insert(tree, (struct datum) {11});
+  success = tree_insert(tree, (struct datum) {234});
+  success = tree_insert(tree, (struct datum) {2364});
+  success = tree_insert(tree, (struct datum) {52});
+  success = tree_insert(tree, (struct datum) {5});
+  success = tree_insert(tree, (struct datum) {53});
+
+
+  print_tree(tree->root, 0);
+  puts("========================");
 
   printf("휘유\n");
+}
+
+void actual_test() {
+  struct b_tree *tree = tree_init();
+
+  FILE *fr = fopen("input_random_key_01.txt", "rt");  // 키 중복이 많다 (300000 이상)
+  // FILE *fr = fopen("input_random_key_02.txt", "rt");
+  // FILE *fr = fopen("input_random_key_03.txt", "rt");  // 키 중복이 적다 (10개 이하)
+
+  if (fr == NULL) {
+    puts("file open error");
+    return;
+  }
+
+  int EVAL = 50000;
+  int *inserted = (int *) malloc (sizeof(int) * EVAL);
+  int *deleted = (int *) malloc (sizeof(int) * EVAL / 2);
+  bool success;
+  int i = 0;
+  int j;
+  int fail_cnt = 0;
+  while (!feof(fr)) {
+    fscanf(fr, "%d\n", &inserted[i]);
+    success = tree_insert(tree, (struct datum) {inserted[i]});
+    i += 1;
+
+    struct datum found;
+    if (i == EVAL) {  // 50000번째 삽입마다
+      // 최근 삽입된 0 ~ 50000번 검색
+      for (j = 0; j < EVAL; j++) {
+        found = tree_find_datum(tree, inserted[j]);
+        if (found.key != inserted[j]) {
+          fail_cnt += 1;  // 검색 결과가 다르다면 fail 횟수 증가
+        }
+      }
+      // printf("EVAL 만큼 삽입 후 트리 크기 : %d\n", tree->num_data);
+
+      // 최근 삽입 0 ~ 50000개 중 랜덤 25000번 삭제
+      srand(time(NULL));
+      for (j = 0; j < EVAL / 2; j++) {
+        int temp = rand() % EVAL;
+        if (inserted[temp] == -1) {  // 이미 삭제된 키라면
+          continue;
+        }
+
+        deleted[j / 2] = inserted[temp];
+        inserted[temp] = -1;
+        success = tree_delete(tree, deleted[j / 2]);  // 파일 상의 중복때문에 스킵
+        found = tree_find_datum(tree, deleted[j / 2]);
+        // 삭제 결과가 실패라면 - 검색 결과가 0이 아니라면
+        if (found.key != 0) {
+          fail_cnt += 1;
+        }
+      }
+
+      // printf("  중간점검 - fail 횟수는 : %d\n", fail_cnt);
+      i = 0;  // 다음 오만 개
+    }
+
+  }
+  fclose(fr);
+
+  free(inserted);
+  free(deleted);
+
+  printf("fail 횟수는 : %d\n", fail_cnt);
+
 }
